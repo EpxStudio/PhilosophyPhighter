@@ -1,2 +1,3 @@
 # PhilosophyPhighter
-Philosophers Phighting
+
+The best philosophy phighting game on earth!
