@@ -5,11 +5,21 @@ public class SocratesScipt : PlayerScript
 {
 	void Start()
 	{
-		anim = gameObject.GetComponent<Animator>();
-		anim.SetFloat("Speed", 1f);
+		SetupComponents();
 
 		LeftKey = KeyCode.LeftArrow;
 		RightKey = KeyCode.RightArrow;
 		PunchKey = KeyCode.PageUp;
+		KickKey = KeyCode.PageDown;
+		JumpKey = KeyCode.UpArrow;
+		BlockKey = KeyCode.RightControl;
+		CrouchKey = KeyCode.DownArrow;
+
+		States["IsFacingRight"] = false;
+	}
+
+	void OnGUI()
+	{
+		GUI.Box(new Rect(Screen.width - 100, 0, 100, 50), TotalHealth.ToString());
 	}
 }

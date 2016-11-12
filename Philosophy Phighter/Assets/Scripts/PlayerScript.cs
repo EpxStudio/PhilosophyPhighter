@@ -7,15 +7,23 @@ public class PlayerScript : MonoBehaviour
 	public GameObject opponent;
 	public int TotalHealth;
 	public int PunchStrength;
-
-	internal bool IsInRange = false;
-
+	public int KickStrength;
+	public int AerialModifier;
+	
 	internal Animator anim;
-	internal KeyCode LeftKey;
-	internal KeyCode RightKey;
-	internal KeyCode PunchKey;
+	internal Rigidbody2D rb2d;
 
-	PlayerScript OpponentScript
+	internal KeyCode BlockKey;
+	internal KeyCode JumpKey;
+	internal KeyCode KickKey;
+	internal KeyCode LeftKey;
+	internal KeyCode PunchKey;
+	internal KeyCode RightKey;
+	internal KeyCode CrouchKey;
+
+	internal StateTracker<bool> States = new StateTracker<bool>();
+
+	internal PlayerScript OpponentScript
 	{
 		get
 		{
@@ -23,53 +31,131 @@ public class PlayerScript : MonoBehaviour
 		}
 	}
 
-	// Update is called once per frame
-	void Update()
+	internal void SetupComponents()
 	{
+		anim = gameObject.GetComponent<Animator>();
+		anim.SetFloat("Speed", 1f);
 
+		rb2d = gameObject.GetComponent<Rigidbody2D>();
 	}
 
 	void FixedUpdate()
 	{
+		/***************
+		 * LEFT & RIGHT
+		 ***************/
 		if (Input.GetKey(LeftKey))
 		{
-			Vector3 newScale = transform.localScale;
-			newScale.y = 1.0f;
-			newScale.x = 1.0f;
-			transform.localScale = newScale;
-
-			transform.position -= transform.right * MoveSpeed * Time.deltaTime;
+			transform.position -= transform.right * MoveSpeed * (States["IsCrouching"] ? 0.25f : 1) * Time.deltaTime;
 		}
 		else if (Input.GetKey(RightKey))
 		{
-			Vector3 newScale = transform.localScale;
-			newScale.x = 1.0f;
-			transform.localScale = newScale;
-
-			transform.position += transform.right * MoveSpeed * Time.deltaTime;
+			transform.position += transform.right * MoveSpeed * (States["IsCrouching"] ? 0.25f : 1) * Time.deltaTime;
 		}
 
-		if (Input.GetKey(PunchKey) && OpponentScript.IsInRange)
+		/***************
+		 * JUMPING
+		 ***************/
+		if (Input.GetKey(JumpKey) && !States["IsAerial"])
 		{
-			OpponentScript.PunchMe(PunchStrength);
+			States["IsAerial"] = true;
+			rb2d.AddForce(new Vector2(0f, 500f));
+		}
+
+		/***************
+		 * PUNCHING
+		 ***************/
+		if (Input.GetKey(PunchKey) &&
+			OpponentScript.States["IsInRange"] &&
+			!States["HasPunched"] &&
+			!States["IsBlocking"])
+		{
+			OpponentScript.PunchMe(PunchStrength * (States["IsAerial"] ? AerialModifier : 1));
+			States["HasPunched"] = true;
+		}
+		else if (!Input.GetKey(PunchKey) && States["HasPunched"])
+		{
+			States["HasPunched"] = false;
+		}
+
+		/***************
+		 * KICKING
+		 ***************/
+		if (Input.GetKey(KickKey) &&
+			OpponentScript.States["IsInRange"] &&
+			!States["HasKicked"] &&
+			!States["IsBlocking"])
+		{
+			OpponentScript.KickMe(KickStrength * (States["IsAerial"] ? AerialModifier : 1));
+			States["HasKicked"] = true;
+		}
+		else if (!Input.GetKey(KickKey))
+		{
+			States["HasKicked"] = false;
+		}
+
+		/***************
+		 * BLOCKING
+		 ***************/
+		if (Input.GetKey(BlockKey) && !States["IsBlocking"])
+		{
+			States["IsBlocking"] = true;
+		}
+		else if (!Input.GetKey(BlockKey) && States["IsBlocking"])
+		{
+			States["IsBlocking"] = false;
+		}
+
+		/***************
+		 * CROUCHING
+		 ***************/
+		if (Input.GetKey(CrouchKey) && !States["IsCrouching"])
+		{
+			States["IsCrouching"] = true;
+			gameObject.transform.localScale = new Vector3(1.0f, 0.5f, 1.0f);
+			GetComponent<CircleCollider2D>().offset = new Vector2(0f, -0.1f);
+			GetComponent<Rigidbody2D>().gravityScale = 10f;
+		}
+		else if (!Input.GetKey(CrouchKey) && States["IsCrouching"])
+		{
+			States["IsCrouching"] = false;
+			gameObject.transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
+			GetComponent<CircleCollider2D>().offset = new Vector2(0f, -0.77f);
+			GetComponent<Rigidbody2D>().gravityScale = 2.5f;
 		}
 	}
 
-	void OnTriggerEnter(Collider C)
+	void OnTriggerEnter2D(Collider2D C)
 	{
-		Debug.Log("Trigger entered");
-		OpponentScript.IsInRange = true;
+		OpponentScript.States["IsInRange"] = true;
 	}
 
-	void OnTriggerExit(Collider C)
+	void OnTriggerExit2D(Collider2D C)
 	{
-		Debug.Log("Trigger left");
-		OpponentScript.IsInRange = false;
+		OpponentScript.States["IsInRange"] = false;
+	}
+
+	void OnCollisionEnter2D(Collision2D C)
+	{
+		if (C.collider.GetComponent<GroundScript>() != null)
+		{
+			States["IsAerial"] = false;
+		}
 	}
 
 	public void PunchMe(int amount)
 	{
-		TotalHealth -= amount;
-		Debug.Log(TotalHealth);
+		if (!States["IsBlocking"] && !States["IsCrouching"])
+		{
+			TotalHealth -= amount;
+		}
+	}
+
+	public void KickMe(int amount)
+	{
+		if (!States["IsBlocking"])
+		{
+			TotalHealth -= amount;
+		}
 	}
 }
