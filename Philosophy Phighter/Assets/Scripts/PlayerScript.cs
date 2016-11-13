@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System;
 
 public class PlayerScript : MonoBehaviour
 {
@@ -14,6 +15,8 @@ public class PlayerScript : MonoBehaviour
 	internal Rigidbody2D rb2d;
 
 	internal KeyCode BlockKey;
+	internal KeyCode GrappleKey;
+	internal KeyCode GrappleThrowKey;
 	internal KeyCode JumpKey;
 	internal KeyCode KickKey;
 	internal KeyCode LeftKey;
@@ -44,11 +47,16 @@ public class PlayerScript : MonoBehaviour
 		/***************
 		 * LEFT & RIGHT
 		 ***************/
-		if (Input.GetKey(LeftKey))
+		if (Input.GetKey(LeftKey) &&
+			!States["IsGrappled"] &&
+			!States["IsGrappling"])
 		{
 			transform.position -= transform.right * MoveSpeed * (States["IsCrouching"] ? 0.25f : 1) * Time.deltaTime;
 		}
-		else if (Input.GetKey(RightKey))
+
+		if (Input.GetKey(RightKey) &&
+			!States["IsGrappled"] &&
+			!States["IsGrappling"])
 		{
 			transform.position += transform.right * MoveSpeed * (States["IsCrouching"] ? 0.25f : 1) * Time.deltaTime;
 		}
@@ -56,7 +64,10 @@ public class PlayerScript : MonoBehaviour
 		/***************
 		 * JUMPING
 		 ***************/
-		if (Input.GetKey(JumpKey) && !States["IsAerial"])
+		if (Input.GetKey(JumpKey) &&
+			!States["IsAerial"] &&
+			!States["IsGrappled"] &&
+			!States["IsGrappling"])
 		{
 			States["IsAerial"] = true;
 			rb2d.AddForce(new Vector2(0f, 500f));
@@ -68,7 +79,9 @@ public class PlayerScript : MonoBehaviour
 		if (Input.GetKey(PunchKey) &&
 			OpponentScript.States["IsInRange"] &&
 			!States["HasPunched"] &&
-			!States["IsBlocking"])
+			!States["IsBlocking"] &&
+			!States["IsGrappled"] &&
+			!States["IsGrappling"])
 		{
 			OpponentScript.PunchMe(PunchStrength * (States["IsAerial"] ? AerialModifier : 1));
 			States["HasPunched"] = true;
@@ -84,7 +97,10 @@ public class PlayerScript : MonoBehaviour
 		if (Input.GetKey(KickKey) &&
 			OpponentScript.States["IsInRange"] &&
 			!States["HasKicked"] &&
-			!States["IsBlocking"])
+			!States["IsBlocking"] &&
+			!States["IsCrouching"] &&
+			!States["IsGrappled"] &&
+			!States["IsGrappling"])
 		{
 			OpponentScript.KickMe(KickStrength * (States["IsAerial"] ? AerialModifier : 1));
 			States["HasKicked"] = true;
@@ -97,7 +113,10 @@ public class PlayerScript : MonoBehaviour
 		/***************
 		 * BLOCKING
 		 ***************/
-		if (Input.GetKey(BlockKey) && !States["IsBlocking"])
+		if (Input.GetKey(BlockKey) &&
+			!States["IsBlocking"] &&
+			!States["IsGrappled"] &&
+			!States["IsGrappling"])
 		{
 			States["IsBlocking"] = true;
 		}
@@ -109,7 +128,10 @@ public class PlayerScript : MonoBehaviour
 		/***************
 		 * CROUCHING
 		 ***************/
-		if (Input.GetKey(CrouchKey) && !States["IsCrouching"])
+		if (Input.GetKey(CrouchKey) &&
+			!States["IsCrouching"] &&
+			!States["IsGrappled"] &&
+			!States["IsGrappling"])
 		{
 			States["IsCrouching"] = true;
 			gameObject.transform.localScale = new Vector3(1.0f, 0.5f, 1.0f);
@@ -122,6 +144,30 @@ public class PlayerScript : MonoBehaviour
 			gameObject.transform.localScale = new Vector3(1.0f, 1.0f, 1.0f);
 			GetComponent<CircleCollider2D>().offset = new Vector2(0f, -0.77f);
 			GetComponent<Rigidbody2D>().gravityScale = 2.5f;
+		}
+
+		/***************
+		 * GRAPPLING
+		 ***************/
+		if (Input.GetKey(GrappleKey) &&
+			States["IsTouching"] &&
+			!States["IsGrappling"] &&
+			!States["IsGrappled"])
+		{
+			States["IsGrappling"] = OpponentScript.AttemptGrapple();
+		}
+		else if (!Input.GetKey(GrappleKey) && States["IsGrappling"])
+		{
+			OpponentScript.States["IsGrappled"] =
+			States["IsGrappling"] = false;
+		}
+
+		if (Input.GetKey(GrappleThrowKey) && States["IsGrappling"])
+		{
+			States["IsGrappling"] = false;
+			OpponentScript.States["IsAerial"] = true;
+			OpponentScript.rb2d.AddForce(new Vector2(0f, 1500f));
+			OpponentScript.States["IsGrappled"] = false;
 		}
 	}
 
@@ -137,9 +183,22 @@ public class PlayerScript : MonoBehaviour
 
 	void OnCollisionEnter2D(Collision2D C)
 	{
-		if (C.collider.GetComponent<GroundScript>() != null)
+		if (C.collider.GetComponent<PlayerScript>() != null)
+		{
+			States["IsTouching"] = true;
+		}
+		else if (C.collider.GetComponent<GroundScript>() != null)
 		{
 			States["IsAerial"] = false;
+		}
+
+	}
+
+	void OnCollisionExit2D(Collision2D C)
+	{
+		if (C.collider.GetComponent<PlayerScript>() != null)
+		{
+			States["IsTouching"] = false;
 		}
 	}
 
@@ -156,6 +215,21 @@ public class PlayerScript : MonoBehaviour
 		if (!States["IsBlocking"])
 		{
 			TotalHealth -= amount;
+		}
+	}
+
+	private bool AttemptGrapple()
+	{
+		if (!States["IsBlocking"] &&
+			!States["IsCrouching"] &&
+			!States["IsGrappled"])
+		{
+			States["IsGrappled"] = true;
+			return true;
+		}
+		else
+		{
+			return false;
 		}
 	}
 }

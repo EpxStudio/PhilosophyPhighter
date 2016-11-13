@@ -14,6 +14,8 @@ public class SocratesScipt : PlayerScript
 		JumpKey = KeyCode.UpArrow;
 		BlockKey = KeyCode.RightControl;
 		CrouchKey = KeyCode.DownArrow;
+		GrappleKey = KeyCode.RightShift;
+		GrappleThrowKey = KeyCode.Slash;
 
 		States["IsFacingRight"] = false;
 	}

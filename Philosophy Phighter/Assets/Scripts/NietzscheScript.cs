@@ -14,6 +14,8 @@ public class NietzscheScript : PlayerScript
 		JumpKey = KeyCode.W;
 		BlockKey = KeyCode.F;
 		CrouchKey = KeyCode.S;
+		GrappleKey = KeyCode.R;
+		GrappleThrowKey = KeyCode.V;
 
 		States["IsFacingRight"] = true;
 	}
