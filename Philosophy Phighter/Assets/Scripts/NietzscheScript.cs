@@ -5,8 +5,6 @@ public class NietzscheScript : PlayerScript
 {
 	void Start()
 	{
-		SetupComponents();
-
 		LeftKey = KeyCode.A;
 		RightKey = KeyCode.D;
 		PunchKey = KeyCode.E;
@@ -18,6 +16,8 @@ public class NietzscheScript : PlayerScript
 		GrappleThrowKey = KeyCode.V;
 
 		States["IsFacingRight"] = true;
+
+		SetupComponents();
 	}
 
 	void OnGUI()

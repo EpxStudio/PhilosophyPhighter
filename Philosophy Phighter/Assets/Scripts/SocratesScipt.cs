@@ -5,8 +5,6 @@ public class SocratesScipt : PlayerScript
 {
 	void Start()
 	{
-		SetupComponents();
-
 		LeftKey = KeyCode.LeftArrow;
 		RightKey = KeyCode.RightArrow;
 		PunchKey = KeyCode.PageUp;
@@ -18,6 +16,8 @@ public class SocratesScipt : PlayerScript
 		GrappleThrowKey = KeyCode.Slash;
 
 		States["IsFacingRight"] = false;
+
+		SetupComponents();
 	}
 
 	void OnGUI()

@@ -10,9 +10,12 @@ public class PlayerScript : MonoBehaviour
 	public int PunchStrength;
 	public int KickStrength;
 	public int AerialModifier;
+	public GameObject ClipsCarrier;
 	
 	internal Animator anim;
 	internal Rigidbody2D rb2d;
+
+	internal AudioClips Clips;
 
 	internal KeyCode BlockKey;
 	internal KeyCode GrappleKey;
@@ -40,6 +43,8 @@ public class PlayerScript : MonoBehaviour
 		anim.SetFloat("Speed", 1f);
 
 		rb2d = gameObject.GetComponent<Rigidbody2D>();
+
+		Clips = ClipsCarrier.GetComponent<AudioClips>();
 	}
 
 	void FixedUpdate()
@@ -83,7 +88,15 @@ public class PlayerScript : MonoBehaviour
 			!States["IsGrappled"] &&
 			!States["IsGrappling"])
 		{
-			OpponentScript.PunchMe(PunchStrength * (States["IsAerial"] ? AerialModifier : 1));
+			if (OpponentScript.PunchMe(PunchStrength * (States["IsAerial"] ? AerialModifier : 1)))
+			{
+				Clips.Punch.Play();
+			}
+			else
+			{
+				Clips.Woosh.Play();
+			}
+
 			States["HasPunched"] = true;
 		}
 		else if (!Input.GetKey(PunchKey) && States["HasPunched"])
@@ -102,7 +115,15 @@ public class PlayerScript : MonoBehaviour
 			!States["IsGrappled"] &&
 			!States["IsGrappling"])
 		{
-			OpponentScript.KickMe(KickStrength * (States["IsAerial"] ? AerialModifier : 1));
+			if (OpponentScript.KickMe(KickStrength * (States["IsAerial"] ? AerialModifier : 1)))
+			{
+				Clips.Kick.Play();
+			}
+			else
+			{
+				Clips.Woosh.Play();
+			}
+
 			States["HasKicked"] = true;
 		}
 		else if (!Input.GetKey(KickKey))
@@ -187,11 +208,8 @@ public class PlayerScript : MonoBehaviour
 		{
 			States["IsTouching"] = true;
 		}
-		else if (C.collider.GetComponent<GroundScript>() != null)
-		{
-			States["IsAerial"] = false;
-		}
 
+		States["IsAerial"] = false;
 	}
 
 	void OnCollisionExit2D(Collision2D C)
@@ -202,19 +220,39 @@ public class PlayerScript : MonoBehaviour
 		}
 	}
 
-	public void PunchMe(int amount)
+	public bool PunchMe(int amount)
 	{
 		if (!States["IsBlocking"] && !States["IsCrouching"])
 		{
 			TotalHealth -= amount;
+			CheckWin();
+			Clips.Grunt.Play();
+
+			return true;
 		}
+
+		return false;
 	}
 
-	public void KickMe(int amount)
+	public bool KickMe(int amount)
 	{
 		if (!States["IsBlocking"])
 		{
 			TotalHealth -= amount;
+			CheckWin();
+			Clips.Grunt.Play();
+
+			return true;
+		}
+
+		return false;
+	}
+
+	public void CheckWin()
+	{
+		if (TotalHealth <= 0 || OpponentScript.TotalHealth <= 0)
+		{
+			Application.LoadLevel(0);
 		}
 	}
 
