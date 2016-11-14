@@ -99,6 +99,10 @@ public class PlayerScript : MonoBehaviour
 
 			States["HasPunched"] = true;
 		}
+		else if (Input.GetKey(PunchKey))
+		{
+			Clips.Woosh.Play();
+		}
 		else if (!Input.GetKey(PunchKey) && States["HasPunched"])
 		{
 			States["HasPunched"] = false;
@@ -125,6 +129,10 @@ public class PlayerScript : MonoBehaviour
 			}
 
 			States["HasKicked"] = true;
+		}
+		else if (Input.GetKey(KickKey))
+		{
+			Clips.Woosh.Play();
 		}
 		else if (!Input.GetKey(KickKey))
 		{
